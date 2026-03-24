@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Member {
+  id        Int      @id @default(autoincrement())
+  name      String
+  role      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  weeklyStatuses MemberWeeklyStatus[]
+  announcements  Announcement[]
+
+  @@map("members")
+}
+
+model Week {
+  id         Int      @id @default(autoincrement())
+  year       Int
+  weekNumber Int
+  weekStart  DateTime
+  weekEnd    DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  memberStatuses MemberWeeklyStatus[]
+
+  @@unique([year, weekNumber])
+  @@map("weeks")
+}
+
+model MemberWeeklyStatus {
+  id             Int      @id @default(autoincrement())
+  weekId         Int
+  memberId       Int
+  focus          String?
+  healthStatus   String   @default("on_track")
+  completionNote String?
+  reviewNote     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  week      Week       @relation(fields: [weekId], references: [id])
+  member    Member     @relation(fields: [memberId], references: [id])
+  workItems WorkItem[]
+
+  @@unique([weekId, memberId])
+  @@map("member_weekly_status")
+}
+
+model WorkItem {
+  id                    Int      @id @default(autoincrement())
+  memberWeeklyStatusId  Int
+  title                 String
+  content               String?
+  status                String   @default("todo")
+  progress              Int      @default(0)
+  blocker               String?
+  review                String?
+  sortOrder             Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  memberWeeklyStatus MemberWeeklyStatus @relation(fields: [memberWeeklyStatusId], references: [id])
+
+  @@map("work_items")
+}
+
+model Announcement {
+  id        Int      @id @default(autoincrement())
+  memberId  Int
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  member Member @relation(fields: [memberId], references: [id])
+
+  @@map("announcements")
+}
