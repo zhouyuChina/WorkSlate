@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
+import SafeHtml from "@/components/ui/SafeHtml";
 
 const RichEditor = dynamic(() => import("@/components/editor/RichEditor"), {
   ssr: false,
@@ -378,10 +379,7 @@ function TaskCard({
         </div>
       </div>
       {task.content && (
-        <div
-          className="mt-2 text-sm text-gray-600 prose prose-sm max-w-none"
-          dangerouslySetInnerHTML={{ __html: task.content }}
-        />
+        <SafeHtml html={task.content} className="mt-2 text-sm text-gray-600 prose prose-sm max-w-none" />
       )}
       {task.blocker && (
         <div className="mt-2 text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
@@ -391,10 +389,7 @@ function TaskCard({
       {task.review && (
         <div className="mt-2 border-t pt-2">
           <span className="text-xs text-gray-400">复盘:</span>
-          <div
-            className="text-sm text-gray-600 prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: task.review }}
-          />
+          <SafeHtml html={task.review} className="text-sm text-gray-600 prose prose-sm max-w-none" />
         </div>
       )}
     </div>

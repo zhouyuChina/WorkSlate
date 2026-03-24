@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
+import SafeHtml from "@/components/ui/SafeHtml";
 
 const RichEditor = dynamic(() => import("@/components/editor/RichEditor"), {
   ssr: false,
@@ -115,10 +116,7 @@ export default function AnnouncementBoard({ currentMemberId }: AnnouncementBoard
                 </button>
               )}
             </div>
-            <div
-              className="text-sm text-gray-700 prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: a.content }}
-            />
+            <SafeHtml html={a.content} className="text-sm text-gray-700 prose prose-sm max-w-none" />
           </div>
         ))}
       </div>
