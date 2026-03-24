@@ -31,7 +31,7 @@ export default function AnnouncementBoard({ currentMemberId }: AnnouncementBoard
     const res = await fetch("/api/announcements");
     const json = await res.json();
     if (json.code === 0) {
-      setAnnouncements(json.data || []);
+      setAnnouncements(json.data?.items || []);
     }
   }, []);
 

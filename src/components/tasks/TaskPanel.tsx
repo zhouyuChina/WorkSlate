@@ -30,6 +30,8 @@ interface MemberWeeklyStatus {
 interface TaskPanelProps {
   memberId: number;
   memberName: string;
+  weekId?: number;
+  isCurrentWeek?: boolean;
   onTasksChanged?: () => void;
 }
 
@@ -46,17 +48,19 @@ const healthOptions = [
   { value: "done", label: "已完成" },
 ];
 
-export default function TaskPanel({ memberId, memberName, onTasksChanged }: TaskPanelProps) {
+export default function TaskPanel({ memberId, memberName, weekId, isCurrentWeek = true, onTasksChanged }: TaskPanelProps) {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [weeklyStatus, setWeeklyStatus] = useState<MemberWeeklyStatus | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const weekBase = weekId ? `/api/weeks/${weekId}` : "/api/weeks/current";
+
   const fetchTasks = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/weeks/current/members/${memberId}`);
+      const res = await fetch(`${weekBase}/members/${memberId}`);
       const json = await res.json();
       if (json.code === 0 && json.data) {
         setTasks(json.data.workItems || []);
@@ -70,14 +74,14 @@ export default function TaskPanel({ memberId, memberName, onTasksChanged }: Task
     } finally {
       setLoading(false);
     }
-  }, [memberId]);
+  }, [memberId, weekBase]);
 
   useEffect(() => {
     fetchTasks();
   }, [fetchTasks]);
 
   const handleUpdateStatus = async (field: string, value: string | null) => {
-    await fetch(`/api/weeks/current/members/${memberId}`, {
+    await fetch(`${weekBase}/members/${memberId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ [field]: value }),
@@ -86,7 +90,7 @@ export default function TaskPanel({ memberId, memberName, onTasksChanged }: Task
   };
 
   const handleAddTask = async (title: string, content: string) => {
-    await fetch(`/api/weeks/current/members/${memberId}/tasks`, {
+    await fetch(`${weekBase}/members/${memberId}/tasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, content: content || null }),
@@ -123,12 +127,14 @@ export default function TaskPanel({ memberId, memberName, onTasksChanged }: Task
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">{memberName} 的任务</h3>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          + 添加任务
-        </button>
+        {isCurrentWeek && (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            + 添加任务
+          </button>
+        )}
       </div>
 
       {/* Weekly Status */}

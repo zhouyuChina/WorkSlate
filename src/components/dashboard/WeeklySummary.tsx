@@ -27,14 +27,17 @@ interface SummaryData {
   memberSummaries: MemberSummary[];
 }
 
-export default function WeeklySummary() {
+export default function WeeklySummary({ weekId }: { weekId?: number }) {
   const [data, setData] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchSummary = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/weeks/current/summary");
+      const url = weekId
+        ? `/api/weeks/${weekId}/summary`
+        : "/api/weeks/current/summary";
+      const res = await fetch(url);
       const json = await res.json();
       if (json.code === 0) {
         setData(json.data);
@@ -42,7 +45,7 @@ export default function WeeklySummary() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [weekId]);
 
   useEffect(() => {
     fetchSummary();

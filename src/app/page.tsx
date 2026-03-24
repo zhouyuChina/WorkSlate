@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import DashboardStats from "@/components/dashboard/DashboardStats";
+import WeekSelector from "@/components/dashboard/WeekSelector";
 import WeeklySummary from "@/components/dashboard/WeeklySummary";
 import MemberList from "@/components/members/MemberList";
 import AddMemberForm from "@/components/members/AddMemberForm";
@@ -37,20 +38,33 @@ interface DashboardData {
   }>;
 }
 
-type Tab = "tasks" | "summary" | "announcements";
+type Tab = "tasks" | "summary";
 
 export default function Home() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [currentWeekId, setCurrentWeekId] = useState<number | null>(null);
+  const [selectedWeekId, setSelectedWeekId] = useState<number | null>(null);
   const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("tasks");
   const [loading, setLoading] = useState(true);
 
-  const fetchDashboard = useCallback(async () => {
+  const isCurrentWeek = selectedWeekId === currentWeekId;
+
+  const fetchDashboard = useCallback(async (weekId?: number | null) => {
     try {
-      const res = await fetch("/api/weeks/current/dashboard");
+      const url =
+        weekId && weekId !== currentWeekId
+          ? `/api/weeks/${weekId}/dashboard`
+          : "/api/weeks/current/dashboard";
+      const res = await fetch(url);
       const json = await res.json();
       if (json.code === 0) {
         setDashboard(json.data);
+        // On first load, record the current week id
+        if (currentWeekId === null) {
+          setCurrentWeekId(json.data.week.id);
+          setSelectedWeekId(json.data.week.id);
+        }
         // Auto-select first member if none selected
         if (!selectedMemberId && json.data.members.length > 0) {
           setSelectedMemberId(json.data.members[0].id);
@@ -59,11 +73,23 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [selectedMemberId]);
+  }, [currentWeekId, selectedMemberId]);
 
+  // Initial load
   useEffect(() => {
     fetchDashboard();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-fetch when selected week changes
+  const handleWeekChange = useCallback((weekId: number) => {
+    setSelectedWeekId(weekId);
+    setLoading(true);
+    fetchDashboard(weekId);
   }, [fetchDashboard]);
+
+  const handleRefresh = useCallback(() => {
+    fetchDashboard(selectedWeekId);
+  }, [fetchDashboard, selectedWeekId]);
 
   const selectedMember = dashboard?.members.find((m) => m.id === selectedMemberId);
 
@@ -77,16 +103,31 @@ export default function Home() {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "tasks", label: "任务清单" },
-    { key: "summary", label: "本周汇总" },
-    { key: "announcements", label: "团队公告" },
+    { key: "summary", label: "周汇总" },
   ];
 
   return (
     <main className="min-h-screen bg-gray-100">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-800">WorkSlate</h1>
-        <p className="text-sm text-gray-500">周会总结与复盘系统</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">WorkSlate</h1>
+            <p className="text-sm text-gray-500">周会总结与复盘系统</p>
+          </div>
+          {currentWeekId && selectedWeekId && (
+            <WeekSelector
+              currentWeekId={currentWeekId}
+              selectedWeekId={selectedWeekId}
+              onWeekChange={handleWeekChange}
+            />
+          )}
+        </div>
+        {!isCurrentWeek && (
+          <div className="mt-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
+            正在查看历史周记录
+          </div>
+        )}
       </header>
 
       {/* Dashboard Stats */}
@@ -99,17 +140,20 @@ export default function Home() {
       {/* Main Content */}
       <div className="px-6 pb-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left: Member List */}
-          <div className="lg:col-span-3">
+          {/* Left: Announcements + Member List */}
+          <div className="lg:col-span-3 space-y-6">
+            <div className="bg-white rounded-lg shadow p-4">
+              <AnnouncementBoard currentMemberId={selectedMemberId} />
+            </div>
             <div className="bg-white rounded-lg shadow p-4">
               <h2 className="text-base font-semibold mb-3">团队成员</h2>
-              <AddMemberForm onAdded={fetchDashboard} />
+              {isCurrentWeek && <AddMemberForm onAdded={handleRefresh} />}
               <div className="mt-3">
                 <MemberList
                   members={dashboard?.members || []}
                   selectedId={selectedMemberId}
                   onSelect={setSelectedMemberId}
-                  onRefresh={fetchDashboard}
+                  onRefresh={handleRefresh}
                 />
               </div>
             </div>
@@ -139,18 +183,19 @@ export default function Home() {
               {activeTab === "tasks" && (
                 selectedMember ? (
                   <TaskPanel
-                    key={selectedMember.id}
+                    key={`${selectedWeekId}-${selectedMember.id}`}
                     memberId={selectedMember.id}
                     memberName={selectedMember.name}
-                    onTasksChanged={fetchDashboard}
+                    weekId={selectedWeekId ?? undefined}
+                    isCurrentWeek={isCurrentWeek}
+                    onTasksChanged={handleRefresh}
                   />
                 ) : (
                   <p className="text-gray-400 text-center py-8">请先在左侧选择一个成员</p>
                 )
               )}
-              {activeTab === "summary" && <WeeklySummary />}
-              {activeTab === "announcements" && (
-                <AnnouncementBoard currentMemberId={selectedMemberId} />
+              {activeTab === "summary" && (
+                <WeeklySummary weekId={selectedWeekId ?? undefined} />
               )}
             </div>
           </div>

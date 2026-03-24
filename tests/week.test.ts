@@ -121,4 +121,78 @@ describe("Week 周管理", () => {
       expect(updated.completionNote).toBe("进度延迟");
     });
   });
+
+  describe("listWeeks 查询周列表", () => {
+    it("无周记录时返回空数组", async () => {
+      const prisma = getTestPrisma();
+      const weekService = createWeekService(prisma);
+
+      const weeks = await weekService.listWeeks();
+      expect(weeks).toEqual([]);
+    });
+
+    it("返回按 year DESC, weekNumber DESC 排序的周列表", async () => {
+      const prisma = getTestPrisma();
+      const weekService = createWeekService(prisma);
+
+      await prisma.week.create({
+        data: { year: 2026, weekNumber: 10, weekStart: new Date("2026-03-02"), weekEnd: new Date("2026-03-08") },
+      });
+      await prisma.week.create({
+        data: { year: 2026, weekNumber: 13, weekStart: new Date("2026-03-23"), weekEnd: new Date("2026-03-29") },
+      });
+      await prisma.week.create({
+        data: { year: 2025, weekNumber: 52, weekStart: new Date("2025-12-22"), weekEnd: new Date("2025-12-28") },
+      });
+
+      const weeks = await weekService.listWeeks();
+      expect(weeks).toHaveLength(3);
+      expect(weeks[0].year).toBe(2026);
+      expect(weeks[0].weekNumber).toBe(13);
+      expect(weeks[1].year).toBe(2026);
+      expect(weeks[1].weekNumber).toBe(10);
+      expect(weeks[2].year).toBe(2025);
+      expect(weeks[2].weekNumber).toBe(52);
+    });
+
+    it("返回完整字段（id, year, weekNumber, weekStart, weekEnd）", async () => {
+      const prisma = getTestPrisma();
+      const weekService = createWeekService(prisma);
+
+      await prisma.week.create({
+        data: { year: 2026, weekNumber: 13, weekStart: new Date("2026-03-23"), weekEnd: new Date("2026-03-29") },
+      });
+
+      const weeks = await weekService.listWeeks();
+      expect(weeks[0]).toHaveProperty("id");
+      expect(weeks[0]).toHaveProperty("year", 2026);
+      expect(weeks[0]).toHaveProperty("weekNumber", 13);
+      expect(weeks[0]).toHaveProperty("weekStart");
+      expect(weeks[0]).toHaveProperty("weekEnd");
+    });
+  });
+
+  describe("getWeekById 查询单个周", () => {
+    it("存在时返回周记录", async () => {
+      const prisma = getTestPrisma();
+      const weekService = createWeekService(prisma);
+
+      const created = await prisma.week.create({
+        data: { year: 2026, weekNumber: 13, weekStart: new Date("2026-03-23"), weekEnd: new Date("2026-03-29") },
+      });
+
+      const week = await weekService.getWeekById(created.id);
+      expect(week).not.toBeNull();
+      expect(week!.id).toBe(created.id);
+      expect(week!.year).toBe(2026);
+    });
+
+    it("不存在时返回 null", async () => {
+      const prisma = getTestPrisma();
+      const weekService = createWeekService(prisma);
+
+      const week = await weekService.getWeekById(99999);
+      expect(week).toBeNull();
+    });
+  });
 });
