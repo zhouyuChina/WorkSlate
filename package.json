@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "package:deploy": "node scripts/package-deploy.cjs",
     "lint": "next lint",

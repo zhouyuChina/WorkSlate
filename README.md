@@ -140,6 +140,7 @@ npm run package:deploy
 - 自动复制 `.next/static`、`public`、`generated`、`prisma`
 - 默认把当前 `dev.db` 一起打进包，产物输出到 `.deploy/`
 - 额外生成一个 `.tar.gz` 压缩包，方便直接上传服务器
+- ⚠️ 项目依赖 `better-sqlite3`（原生模块），打包建议在目标服务器相同的 OS/CPU 架构上执行，否则可能出现二进制不兼容
 
 常用参数：
 
