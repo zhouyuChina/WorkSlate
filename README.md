@@ -127,6 +127,39 @@ npm run build
 npm start
 ```
 
+## 部署打包
+
+```bash
+npm run package:deploy
+```
+
+执行后会：
+
+- 先运行 `npx prisma generate` 和 `npm run build`
+- 基于 Next.js standalone 输出生成可部署目录
+- 自动复制 `.next/static`、`public`、`generated`、`prisma`
+- 默认把当前 `dev.db` 一起打进包，产物输出到 `.deploy/`
+- 额外生成一个 `.tar.gz` 压缩包，方便直接上传服务器
+
+常用参数：
+
+```bash
+# 不把本地 SQLite 数据一起打包
+npm run package:deploy -- --no-db
+
+# 明确需要时再把当前 .env 带进去
+npm run package:deploy -- --include-env
+
+# 已经构建过时，直接复用现有产物
+npm run package:deploy -- --skip-build
+```
+
+部署后进入解压目录，启动命令：
+
+```bash
+HOSTNAME=0.0.0.0 PORT=3000 node server.js
+```
+
 ## License
 
 MIT
